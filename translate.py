@@ -188,53 +188,54 @@ def _find_whole_commands(input_str):
     incomplete_command = []
     excess_opening_brackets = 0
     for string in string_list:
-        if not((string[0] == "'" or string[0] == '"') and (string[-1] == "'" or string[-1] == '"')):
-            command_list += _find_commands_without_string_parameters(string)
+        if len(string) != 0:
+            if not((string[0] == "'" or string[0] == '"') and (string[-1] == "'" or string[-1] == '"')):
+                command_list += _find_commands_without_string_parameters(string)
 
-            carryover = excess_opening_brackets
-            if excess_opening_brackets > 0:
-                bracket_balance = 0
-                temporary_character_list = []
-                for character in string:
-                    temporary_character_list.append(character)
-                    if character == "(":
-                        bracket_balance -= 1
-                    elif character == ")":
-                        bracket_balance += 1
+                carryover = excess_opening_brackets
+                if excess_opening_brackets > 0:
+                    bracket_balance = 0
+                    temporary_character_list = []
+                    for character in string:
+                        temporary_character_list.append(character)
+                        if character == "(":
+                            bracket_balance -= 1
+                        elif character == ")":
+                            bracket_balance += 1
+                            if bracket_balance == excess_opening_brackets:
+                                incomplete_command.append(''.join(temporary_character_list))
+                                command_list.append(''.join(incomplete_command))
+                                incomplete_command = []
+                                break
+
+                    incomplete_command.append(''.join(temporary_character_list))
+
+                excess_opening_brackets = string.count("(") - string.count(")") + carryover
+                if excess_opening_brackets > 0:
+                    temporary_character_list = []
+                    bracket_balance = 0
+                    index = -1
+                    while index >= -len(string):
+                        character = string[index]
+                        temporary_character_list.append(character)
+                        if character == ")":
+                            bracket_balance -= 1
+                        elif character == "(":
+                            bracket_balance += 1
                         if bracket_balance == excess_opening_brackets:
-                            incomplete_command.append(''.join(temporary_character_list))
-                            command_list.append(''.join(incomplete_command))
-                            incomplete_command = []
-                            break
+                            if character in ILLEGAL_CHARACTERS_FUNCTION_NOMENCLATURE:
+                                temporary_character_list.reverse()
+                                incomplete_command.append(''.join(temporary_character_list[1:]))
+                                break
+                            elif index == -len(string):
+                                temporary_character_list.reverse()
+                                incomplete_command.append(''.join(temporary_character_list))
+                                break
+                        index -= 1
 
-                incomplete_command.append(''.join(temporary_character_list))
-
-            excess_opening_brackets = string.count("(") - string.count(")") + carryover
-            if excess_opening_brackets > 0:
-                temporary_character_list = []
-                bracket_balance = 0
-                index = -1
-                while index >= -len(string):
-                    character = string[index]
-                    temporary_character_list.append(character)
-                    if character == ")":
-                        bracket_balance -= 1
-                    elif character == "(":
-                        bracket_balance += 1
-                    if bracket_balance == excess_opening_brackets:
-                        if character in ILLEGAL_CHARACTERS_FUNCTION_NOMENCLATURE:
-                            temporary_character_list.reverse()
-                            incomplete_command.append(''.join(temporary_character_list[1:]))
-                            break
-                        elif index == -len(string):
-                            temporary_character_list.reverse()
-                            incomplete_command.append(''.join(temporary_character_list))
-                            break
-                    index -= 1
-
-        else:
-            if excess_opening_brackets > 0:
-                incomplete_command.append(string)
+            else:
+                if excess_opening_brackets > 0:
+                    incomplete_command.append(string)
 
     # recursively the function will call itself, as long is it notices, that within one of its commands is another
     # command call, as it is indeed possible to use a command call as the parameter of another command as 'deep' as

@@ -23,7 +23,7 @@ def execute(shell, translated_string):
     # ALL VARIABLE NAMES ARE IMPORTANT AS TEY ARE PART OF THE TRANSLATION PROCESS AND HAVE TO BE CHANGED THERE AS WELL
 
     # creating the foreground ShellCom interface for execution
-    fg_com = datamanage.ForegroundShellCom(shell.shell_server.data_nexus, shell)
+    fg_com = datamanage.ForegroundShellCom(shell.shell_server, shell)
 
     # shortening the name of the environmental variable container, as the term 'EnV' is used within the translated
     # string to be dynamically executed, therefore the variable container has to be available in this local namespace

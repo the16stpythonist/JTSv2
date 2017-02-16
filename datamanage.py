@@ -3,6 +3,7 @@ import multiprocessing
 import configparser
 import threading
 import pickle
+import sys
 import os
 
 
@@ -50,12 +51,37 @@ class EnvironmentalVariableContainer:
                 with open(file_path, "rb") as file:
                     self.dict[filename] = pickle.load(file)
 
+    def keys(self):
+        """
+        The keys method of a dictionary style container object
+        Returns:
+        The list of keys of the internal dictionary
+        """
+        return self.dict.keys()
+
     def __setitem__(self, key, value):
+        """
+        This is the magic method for assigning a new dictionary item by the statement:
+        object[key] = value
+        If such a assignment is performed with a env. variable container, the according value is changed in case the
+        specified env. variable already existed, in case its supposed to be a new variable the file in the env.
+        variable folder is created as well.
+        Args:
+            key: The key of the dictionary entry to be modified/ added
+            value: The new value for the given key
+
+        Returns:
+        void
+        """
+        # First checks whether a variable with the specified name already exists, in case it dies not, creates a new
+        # file in the folder, where the env. variables are stored and writes the pickled data into the file
         if key not in self.dict.keys():
             variable_path = "{}\\{}".format(self.variable_directory, key)
+            # The windows system command for creating a new file
             os.system("copy NUL {}".format(variable_path))
             with open(variable_path, mode="wb") as file:
                 pickle.dump(value, file)
+        # In any case, whether the variable already exists or not takes up the Key value pair into the internal dict
         self.dict[key] = value
 
     def __getitem__(self, item):
@@ -143,17 +169,24 @@ class DataRequest:
 
 class ShellCom:
     """
-    The ShellCom base class for the process to shell communication, that HAS to be passed to every command(-module) that
-    is being executed, since it not only provides the access point to the DataNexus and therefore information about the
-    entirety of the shell environment to the process, but also provides the necessary queue connections for the process/
-    command to first relay data to the Shell Thread, that is later on printed as Messages on a ui.
+    The ShellCom base class for the process to shell communication. An instance of such an object HAS to be passed to
+    every command-function, however, this does not have to be done by the user, but an instance of this is automatically
+    being passed to every command function as its first positional parameter.
+    ShellCom objects are generally used as the access to the environmental variables of the Shell system. The method
+    of accessing the variables however is very inefficient as for each call all environmental variables are read from
+    the file system and then stored in an internal dict. The class implements the magic methods for dictionary
+    behaviour, which means that variables can be accessed by simply indexing the ShellCom object with their string name.
+    Attributes:
+        env_variables: The dictionary storing all the temp
     """
-    def __init__(self, data_nexus):
-        self.request_queue = data_nexus.requests
-        self.env_variables = {}
-        config_parser = configparser.ConfigParser()
-        config_parser.read("config.ini")
-        self.project_path = config_parser["Paths"]["project_dir"]
+    def __init__(self, shell_server):
+        self.shell_server = shell_server
+        # Storing the project directory from the shell server in its own variable
+        self.project_path = self.shell_server.project_directory
+        # Storing the important shell level Threads as their individual variables.
+        self.env_variable_container = self.shell_server.env_variable_container
+        self.process_list = self.shell_server.process_list
+        self.command_reference_dict = self.shell_server.command_reference_dictionary
 
     def print_info(self, string):
         self._print(InfoMessage(string))
@@ -165,17 +198,39 @@ class ShellCom:
         self._print(ResultMessage(string))
 
     def __getitem__(self, key):
-        self._update_env_variables()
-        return self.env_variables[key]
+        """
+        This is the magic method for when a object is indexed. The value inside the index brackets will be passed to
+        this method as the 'key' parameter.
+        The ShellCom objects act as dictionary like containers for the envirnomental variables of the shell system and
+        in case they are indexed with the string name of such a env. variable the value of this variable is returned in
+        response
+        Args:
+            key: The string name of the env. variable, whose value is to be returned
+
+        Returns:
+        The value of the variable addressed
+        """
+        # First checking if there actually is a variable by this name in the container
+        if key in self.env_variable_container.keys():
+            return self.env_variable_container[key]
+        else:
+            error_string = "There is no environmental variable by the name {}".format(str(key))
+            raise AttributeError(error_string)
 
     def __setitem__(self, key, value):
-        self._update_env_variables()
-        if key not in self.env_variables.keys():
-            variable_path = "{}\\{}\\{}".format(self.project_path, "env_vars", key)
-            os.system("copy NUL {}".format(variable_path))
-            with open(variable_path, mode="wb") as file:
-                pickle.dump(value, file)
-        self.env_variables[key] = value
+        """
+        This is the magic method for assigning a new dictionary item by the statement:
+        object[key] = value
+        If such an assignment is being used with a ShellCom object, the specified env. variable with the name "key" is
+        either created or modified
+        Args:
+            key: The string name of the variable, that is supposed to be created / modified
+            value: The new value for the specified variable
+
+        Returns:
+        void
+        """
+        self.env_variable_container[key] = value
 
     def _print(self, msg):
         pass
