@@ -6,6 +6,8 @@ import pickle
 import sys
 import os
 
+# THE FUNCTIONS WHICH ARE USED AS THE CONDITIONS FOR THE SUB DICT CREATION OF THE ENV. VARIABLE CONTAINER#
+
 
 class EnvironmentalVariableContainer:
     """
@@ -59,6 +61,84 @@ class EnvironmentalVariableContainer:
         """
         return self.dict.keys()
 
+    def complying_items(self, function):
+        """
+        Creates a sub dictionary of the main variable dictionary for every key, value pair, that complies the condition
+        posed by the 'function'  passed, which means the sub dictionary will hold only those key, value pairs, which
+        if passed as parameters to 'function' produced a 'True' return.
+        Args:
+            function: The boolean function, with two positional parameters, the first one resembling the key and the
+                second one the value of a dictionary item. Hast to return a boolean.
+
+        Returns:
+        The sub dictionary for all the items that matched the posed comply the posed condition
+        """
+        # Looping through the whole dictionary and adding every key value pair to the sub dict, for which the
+        # specified 'function' returns True
+        sub_dict = {}
+        for key, value in self.dict.items():
+            if function(key, value):
+                sub_dict[key] = value
+        return sub_dict
+
+    def variables_starting_with(self, substring):
+        """
+        Creates a sub dictionary for all the items, whose key starts with the substring 'substring'
+        Args:
+            substring: The substring the variables have to start with
+
+        Returns:
+        The dict with all items, which means env. variables, whose keys start with the substring
+        """
+        return self.complying_items(lambda key, value: self.key_starts_with(key, substring))
+
+    def variables_containing_substring(self, substring):
+        """
+        Creates a sub dictionary for all the items, whose key contain the substring 'substring'
+        Args:
+            substring: The string, the variable names have to contain
+
+        Returns:
+        The dict with all items, which means env. variables, whose keys contain the substring
+        """
+        return self.complying_items(lambda key, value: self.substring_in_key(key, substring))
+
+    def variables_having_type(self, class_or_type):
+        """
+        Creates a sub dictionary for all the variables, whose values have the specified type
+        Args:
+            class_or_type: The CLASS or type specification to check for
+
+        Returns:
+        Tge dict, with all items, which means env. variables, whose values have the specified type
+        """
+        return self.complying_items(lambda key, value: self.value_is_type(value, class_or_type))
+
+    def save(self, key):
+        """
+        Saves the temporary contents of the variable as stored in the internal dictionary into their according file
+        Args:
+            key: The string name of the variable to save
+
+        Returns:
+        void
+        """
+        if key in self.dict.keys():
+            variable_path = "{}\\{}".format(self.variable_directory, key)
+            # Saving the pickled data into the files
+            with open(variable_path, mode="wb") as file:
+                pickle.dump(self[key], file)
+
+    def save_all(self):
+        """
+        Saves all the variables as pickled data into individual files inside a folder of the porject
+        Returns:
+        void
+        """
+        # For every variable name of the variables stored in the internal dictionary
+        for key in self.keys():
+            self.save(key)
+
     def __setitem__(self, key, value):
         """
         This is the magic method for assigning a new dictionary item by the statement:
@@ -84,8 +164,92 @@ class EnvironmentalVariableContainer:
         # In any case, whether the variable already exists or not takes up the Key value pair into the internal dict
         self.dict[key] = value
 
-    def __getitem__(self, item):
-        return self.dict[item]
+    def __getitem__(self, key):
+        """
+        This is the magic method for when a object is indexed. The value inside the index brackets will be passed to
+        this method as the 'key' parameter.
+        Args:
+            key: The key for the item one wants
+
+        Returns:
+        The value of the item specified by 'key'
+        """
+        return self.dict[key]
+
+    def __delitem__(self, key):
+        """
+        This is the magic method for when a item of the container is supposed to be deleted by the 'del' operator
+        del object[key]
+        Args:
+            key: -
+
+        Returns:
+        void
+        """
+        if key in self.dict.keys():
+            del self.dict[key]
+            variable_path = "{}\\{}".format(self.variable_directory, key)
+            os.remove(variable_path)
+        else:
+            raise KeyError("There is no variable by the name {}".format(str(key)))
+
+    @staticmethod
+    def key_starts_with(key, substring):
+        """
+        Whether or not the string given as 'key' starts with the sub string given as 'substring'
+        Notes:
+            This method is mainly used to classify the items of the env. variable dictionary for whether or not they
+            should be added to a specific sub dict.
+        Args:
+            key: The string key to be checked
+            substring: The substring to check for
+
+        Returns:
+        The boolean value of whether or not the key starts with the specified substring
+        """
+        return key[0:len(substring)] == substring
+
+    @staticmethod
+    def substring_in_key(key, substring):
+        """
+        Whether or not the string given by 'substring' is a sub string of the string 'key'
+        Notes:
+            This method is mainly used to classify the items of the env. variable dictionary for whether or not they
+            should be added to a specific sub dict.
+        Args:
+            key: The string key to be checked for potentially having the substring
+            substring: The substring to check for
+
+        Returns:
+        The boolean value of whether or not the substring is in the key string
+        """
+        return substring in key
+
+    @staticmethod
+    def value_is_type(value, class_or_type):
+        """
+        Whether or not the object value is of the type specified by 'class_or_type'
+        Args:
+            value: The value to check the type of
+            class_or_type: The type, the value is supposed to have
+
+        Returns:
+        Whether or not the value has the specified type
+        """
+        return isinstance(value, class_or_type)
+
+    @staticmethod
+    def value_is_same_type(value, obj):
+        """
+        Whether or not the object 'value' is the same type as the object 'obj'
+        Args:
+            value: The first object for the type comparison
+            obj: The second object for the type comparison
+
+        Returns:
+        Whether or not the object 'value' is the same type as the object 'obj'
+        """
+        return type(value) == type(obj)
 
 
 # TODO: add the shell list to the DataNexus's services
@@ -197,6 +361,91 @@ class ShellCom:
     def print_result(self, string):
         self._print(ResultMessage(string))
 
+    def complying_variables(self, function):
+        """
+        Creates a sub dictionary of the main variable dictionary for every key, value pair, that complies the condition
+        posed by the 'function'  passed, which means the sub dictionary will hold only those key, value pairs, which
+        if passed as parameters to 'function' produced a 'True' return.
+        Args:
+            function: The boolean function, with two positional parameters, the first one resembling the key and the
+                second one the value of a dictionary item. Hast to return a boolean.
+
+        Returns:
+        The sub dictionary for all the items that matched the posed comply the posed condition
+        """
+        return self.env_variable_container.complying_items(function)
+
+    def variables_starting_with(self, substring):
+        """
+        Creates a sub dictionary for all the items, whose key starts with the substring 'substring'
+        Args:
+            substring: The substring the variables have to start with
+
+        Returns:
+        The dict with all items, which means env. variables, whose keys start with the substring
+        """
+        return self.env_variable_container.variables_starting_with(substring)
+
+    def variables_containing_substring(self, substring):
+        """
+        Creates a sub dictionary for all the items, whose key contain the substring 'substring'
+        Args:
+            substring: The string, the variable names have to contain
+
+        Returns:
+        The dict with all items, which means env. variables, whose keys contain the substring
+        """
+        return self.env_variable_container.variables_containing_substring(substring)
+
+    def variables_having_type(self, class_or_type):
+        """
+        Creates a sub dictionary for all the variables, whose values have the specified type
+        Args:
+            class_or_type: The CLASS or type specification to check for
+
+        Returns:
+        Tge dict, with all items, which means env. variables, whose values have the specified type
+        """
+        return self.env_variable_container.variables_having_type(class_or_type)
+
+    def stop_all(self):
+        """
+        Stops the whole shell server system, which also means terminating every program associated with it.
+        Returns:
+        void
+        """
+        self.env_variable_container.save_all()
+        self.shell_server.stop()
+
+    def variable_kivy_info(self, key):
+        """
+        The kivy string format for the information about the variable, specified by its string name 'key'.
+        The information contains the name, the type, the size, and the actual content of the variable
+        Args:
+            key: The name of the variable for which the information is supposed to be gathered
+
+        Returns:
+        The string, that displays the information about the specified variable (in kivy format)
+        """
+        if key in self.env_variable_container.keys():
+            value = self[key]
+            string_list = list(["VARIABLE INFORMATION"])
+            string_list.append("\nname: [color=3AD126]{}[/color]\n".format(key))
+            string_list.append("type: {}\n".format(str(type(value))))
+            string_list.append("size: {} Byte\n".format(sys.getsizeof(value)))
+            string_list.append("content:\n{}\n".format(str(value)))
+            return ''.join(string_list)
+        else:
+            raise KeyError("There is no variable of the name {}".format(key))
+
+    def keys(self):
+        """
+        The keys method of a dictionary style container object
+        Returns:
+        The list of variable names
+        """
+        return self.env_variable_container.dict.keys()
+
     def __getitem__(self, key):
         """
         This is the magic method for when a object is indexed. The value inside the index brackets will be passed to
@@ -235,15 +484,33 @@ class ShellCom:
     def _print(self, msg):
         pass
 
-    def _update_env_variables(self):
-        """
-        updates the environmental variables inside the 'env_vars' folder into the local dictionary of the object
-        :return: (void)
-        """
-        for key in os.listdir("{}\\env_vars".format(self.project_path)):
-            filepath = ''.join([self.project_path, "\\env_vars\\", key])
-            with open(filepath, mode="rb") as file:
-                self.env_variables[key] = pickle.load(file)
+    @staticmethod
+    def get_variables_plain_string(variable_dict, whitespace=1, show_size=False):
+        string_list = ["\n"]
+        for key, value in variable_dict.items():
+            string_list.append(key)
+            spaces = " " * whitespace
+            string_list.append("{}-{}".format(spaces, spaces))
+            string_list.append(str(type(value)))
+            if show_size:
+                string_list.append("{}-{}".format(spaces, spaces))
+                string_list.append("{} B".format(sys.getsizeof(value)))
+            string_list.append("\n")
+        return ''.join(string_list)
+
+    @staticmethod
+    def get_variables_kivy_string(variable_dict, column_width=45, show_size=True):
+        string_list = ["\n"]
+        for key in sorted(variable_dict.keys()):
+            value = variable_dict[key]
+            string_list.append("[color=3AD126]{}[/color]{}".format(key, " " * (column_width - len(key))))
+            value_type = str(type(value))
+            string_list.append("{}{}".format(value_type, " " * (column_width - len(value_type))))
+            if show_size:
+                size = "{} B".format(str(sys.getsizeof(value)))
+                string_list.append("{}{}".format(size, " " * (column_width - len(size))))
+            string_list.append("\n")
+        return ''.join(string_list)
 
 
 # Todo: extend Shellcom utility

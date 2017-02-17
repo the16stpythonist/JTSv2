@@ -74,6 +74,7 @@ class ShellServer(threading.Thread):
         self.data_nexus = datamanage.DataNexus(self.process_list, self.env_variable_container,
                                                self.command_reference_dictionary)
         self.data_nexus.start()
+        self.running = True
 
     def run(self):
         """
@@ -86,7 +87,7 @@ class ShellServer(threading.Thread):
         """
         login_folder_path = ''.join([self.project_directory, "/login"])
 
-        while True:
+        while self.running:
 
             # a little delay, as this loop, which si supposed to be running as long as the computer itself shouldn't
             # consume that much energy
@@ -136,6 +137,24 @@ class ShellServer(threading.Thread):
                         # removing the file, that was just used for login, so the server wont start infinitely many
                         # ui windows
                         os.remove(file_path)
+
+    def stop(self):
+        """
+        This method stops the whole shell server system, including stopping every shell Thread, terminating every
+        process and stopping the shell server itself.
+        This ultimatly means every program, that is based on the shell server system is also stopped forcefully.
+        This method should only be used for development or in emergencies
+        Returns:
+        void
+        """
+        # Stopping all the processes/ all the programs that were started with the shell server system
+        self.process_list.stop_all()
+        # Stopping the loops of all the shell threads
+        for shell in self.shell_list:
+            shell.running = False
+        # Exiting python
+        self.running = False
+        exit(True)
 
 
 def _exec(module_path, q1, q2):

@@ -59,6 +59,31 @@ class ProcessList(threading.Thread):
     def start_process(self, execution_statement, data_nexus):
         self.process_starting_request.append(["Process", execution_statement, data_nexus])
 
+    def process_objects(self):
+        """
+        The method for getting a list with only the process objects
+        Returns:
+        A list with the process objects
+        """
+        return list(self.processes.values())
+
+    def process_names(self):
+        """
+        The method for getting a list with only the process names
+        Returns:
+        A list with the process names
+        """
+        return list(self.processes.keys())
+
+    def stop_all(self):
+        """
+        Stops all the processes, that are currently being managed by this object
+        Returns:
+        void
+        """
+        for process in self.processes.values():
+            process.terminate()
+
 
 class Program:
     pass
