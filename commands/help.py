@@ -32,19 +32,25 @@ def main(shell, *args):
     # In case no arguments have been passed to the function, it will display a list of all the possible commands
     # available in the shell, if an argument was passed it will display the complete docstring of this command
     args = list(args)
-    command_reference = cutil.get_default_command_reference()
+    command_reference = shell.command_reference_dict
 
     if len(args) == 0:
         # Getting the command list for all the commands according to the default command reference dict
-        command_list = get_command_list(command_reference)
+        command_list = sorted(list(command_reference.keys()))
+
+        # Getting the doc string list
+        doc_string_list = []
+        for command_name in command_list:
+            doc_string_list.append(command_reference.get_doc(command_name))
 
         # Getting the list of the description strings to those commands
-        description_string_list = get_description_string_list(command_list, command_reference)
+        description_string_list = get_description_string_list(doc_string_list)
 
         # Getting the formatted string to print to the shell
         help_string = get_help_string_listing_format(command_list, description_string_list)
 
         shell.print_info(help_string)
+        return help_string
     else:
         # In case there actually are specific parameters to the help function, it is also possible, that the help is
         # supposed to be displayed for more than just one command, therefore looping thorugh the list of the passed
@@ -56,7 +62,7 @@ def main(shell, *args):
                 # Getting the command name as the string that was passed and the doc string derived from that name using
                 # the designated function for that
                 command_name = str(arg)
-                doc_string = get_doc_string(command_name, command_reference)
+                doc_string = command_reference.get_doc(command_name)
 
                 # Building the help string for the command
                 help_string = get_help_string_single_format(command_name, doc_string)
@@ -66,6 +72,7 @@ def main(shell, *args):
         # Assembling the string list into the final help string an printing it
         help_string = ''.join(string_list)
         shell.print_info(help_string)
+        return help_string
 
 
 def get_doc_string(command_name, command_reference_dict):
@@ -180,24 +187,20 @@ def get_description_string(doc_string):
         return ''.join(description_string_list)
 
 
-def get_description_string_list(command_list, command_reference_dict):
+def get_description_string_list(doc_string_list):
     """
     Creates a list with the descriptions of the shell commands extracted from their respective modules, more
     specifically the doc strings of the main methods od those modules, if given the command list of all the commands to
     extract the descriptions for and the command reference dictionary, which holds the string name references of the
     command names as they are used in the shell environment and the actual module names the functions are located in.
     Args:
-        command_list:
+        doc_string_list:
         command_reference_dict:
 
     Returns:
     A list with only the description strings of the doc strings of the functions for all the commands, that were given
     by the passed command list. The returned list is sorted, it has the same order as the passed command list.
     """
-    # Getting the list of all the dic strings first as they are needed for the process of extracting the pure command
-    # description for a given command. The list is in the same order as the command list
-    doc_string_list = get_doc_string_list(command_list, command_reference_dict)
-
     # This list will be extended by the description strings for each command in the same order as the command list and
     # the doc string list
     description_string_list = []

@@ -1,5 +1,6 @@
 __author__ = 'Jonas'
 import pickle
+import numpy as np
 import inspect
 import os
 import JTSv2.datamanage as datamanage
@@ -21,7 +22,7 @@ def execute(shell, translated_string):
     :return: (void)
     """
     # ALL VARIABLE NAMES ARE IMPORTANT AS TEY ARE PART OF THE TRANSLATION PROCESS AND HAVE TO BE CHANGED THERE AS WELL
-
+    print(translated_string)
     # creating the foreground ShellCom interface for execution
     fg_com = datamanage.ForegroundShellCom(shell.shell_server, shell)
 

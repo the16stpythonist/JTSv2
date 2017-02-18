@@ -58,7 +58,6 @@ class ShellServer(threading.Thread):
 
         # setting up the command reference dictionary
         self.command_reference_dictionary = translate.CommandReferenceDictionary()
-        self.command_reference_dictionary.add("test", "test")
 
         # setting up the process list
         self.process_list = process.ProcessList()

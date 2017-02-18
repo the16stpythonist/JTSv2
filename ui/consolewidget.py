@@ -21,10 +21,13 @@ import time
 import os
 
 project_directory = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+# Initializing the different fonts available for this project
 from kivy.core.text import LabelBase
 LabelBase.register(name="Inconsolata",
                    fn_regular=project_directory+"\\Inconsolata.ttf")
-
+LabelBase.register(name="whiterabbit",
+                   fn_regular=project_directory+"\\whiterabbit.ttf")
+print(project_directory)
 
 
 class OrangeStyle(Style):
@@ -304,7 +307,7 @@ class SimpleConsoleComponent(CodeInput):
         # was downlaoaded at 'http://www.levien.com/type/myfonts/inconsolata.html'
         # For information on how to add custom fonts visit 'http://cheparev.com/kivy-connecting-font/'
         self.font_name = "Inconsolata"
-        self.font_size = 13
+        self.font_size = 16
 
 
 class SimpleConsoleInputLine(SimpleConsoleComponent):
@@ -394,9 +397,13 @@ class SimpleConsoleInputLine(SimpleConsoleComponent):
         command = self.text
         command_lines_old = command.split("\n")
         command_lines_new = []
-        for command_line in command_lines_old:
+        for index in range(len(command_lines_old)):
+            command_line = command_lines_old[index]
             command_lines_new.append("\n")
-            command_lines_new.append(command_line[command_line.find(" ") + 1:])
+            if index == 0:
+                command_lines_new.append(command_line[command_line.find(" ") + 1:])
+            else:
+                command_lines_new.append(command_line[command_line.find(" ") + 2:])
         return ''.join(command_lines_new[1:]).format()
 
     def insert_text(self, substring, from_undo=False):
@@ -605,11 +612,8 @@ class SimpleConsoleInputLine(SimpleConsoleComponent):
             # adding the linebreak characters to the list and creating a new text string from this list
             newlines = []
             for i in range(len(lines)):
-                print(i)
                 newlines.append(lines[i])
                 newlines.append("\n")
-            print(lines)
-            print(newlines)
             self.text = ''.join(newlines[:-1])
 
             # since the cursor will snap to the end of the text after the text string has been modified, moving the
@@ -687,7 +691,7 @@ class SimpleConsoleOutput(ScrollView):
         # was downlaoaded at 'http://www.levien.com/type/myfonts/inconsolata.html'
         # For information on how to add custom fonts visit 'http://cheparev.com/kivy-connecting-font/'
         label.font_name = "Inconsolata"
-        label.font_size = 13
+        label.font_size = 16
 
         self.grid_layout.add_widget(label)
         self.labels.append(label)

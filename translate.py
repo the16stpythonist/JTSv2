@@ -3,6 +3,7 @@ import re
 import os
 import pickle
 import inspect
+import importlib
 import configparser
 import JTSv2.execute as execute
 import JTSv2.lib.stringutil as stringops
@@ -72,7 +73,11 @@ def _translate_commands(input_string, commandreferencedictionary):
     translated_string = input_string
     necessary_imports_list = []
 
-    command_list = _find_whole_commands(input_string)
+    # There was an issue with translating multi line commands, whereas single line command worked perfectly, so the
+    # command list is being created line wise, so that is only has to deal with single lines at a time
+    command_list = []
+    for line in input_string.split("\n"):
+        command_list += _find_whole_commands(line)
 
     for command in command_list:
         command_name = _get_commandname(command).replace("!", "").replace("?", "")
@@ -346,7 +351,9 @@ class CommandReferenceDictionary:
         self.reference_parser.read(self.file_path)
 
         self.dict = dict(self.reference_parser["Commands"])
-        print(self.dict)
+
+        self.doc_string_dict = {}
+        self.load_doc()
 
     # TODO: maybe raise an exception in case there is no command with such a name
     def add(self, command_name, module_name):
@@ -365,6 +372,46 @@ class CommandReferenceDictionary:
 
     def clear(self):
         self.dict = {}
+
+    def get_doc(self, command_name):
+        """
+        Gets the docstring for that command
+        Args:
+            command_name: The name of the command, whose doc string is to be returned
+
+        Returns:
+        The full doc string for the commands underlying function
+        """
+        return self.doc_string_dict[command_name]
+
+    def load_doc(self):
+        """
+        This function dynamically and temporarily imports the modules for every command registered in the internal
+        command reference dict, extracts the doc string of main method and puts it into the internal doc string dict
+        with the command name being the key.
+        This method loads the doc strings of the commands into internal storage.
+        Notes:
+            - Due to the dynamic imports os so many modules, this function actually takes up a lot of time.
+        Returns:
+        void
+        """
+        # Loading the doc string for every command, currently in the internal reference dict
+        for command_name in self.dict.keys():
+            module_name = self[command_name]
+            # Dynamically importing the module, which contains the function for the current command name
+            import_string = "JTSv2.commands.{}".format(module_name)
+            module = importlib.import_module(import_string)
+            # Getting the doc string of the modules main function and assigning it to the command name in the dict
+            doc_string = inspect.getdoc(module.main)
+            self.doc_string_dict[command_name] = doc_string
+
+    def keys(self):
+        """
+        The keys of the internal dict, which is a list of all the command names
+        Returns:
+        A list, containing the string names of all the commands currently registered in the reference dict
+        """
+        return self.dict.keys()
 
     def __len__(self):
         return len(self.dict)
